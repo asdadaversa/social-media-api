@@ -2,11 +2,18 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.utils.translation import gettext as _
 
-from user.models import User
+from user.models import User, UserProfile
+
+
+class ProfileInline(admin.StackedInline):
+    model = UserProfile
+    extra = 1
 
 
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):
+    inlines = [ProfileInline]
+
     """Define admin model for custom User model with no email field."""
 
     fieldsets = (
@@ -25,3 +32,6 @@ class UserAdmin(DjangoUserAdmin):
     list_display = ('email', 'first_name', 'last_name', 'is_staff')
     search_fields = ('email', 'first_name', 'last_name')
     ordering = ('email',)
+
+
+admin.site.register(UserProfile)

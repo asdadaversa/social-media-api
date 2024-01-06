@@ -2,18 +2,59 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
 from django.utils.translation import gettext as _
 from django.core import exceptions
+from user.models import UserProfile, User
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserProfile
+        fields = ("id", "email_id", "first_name", "last_name", "city", "country", "age", "gender", "bio", "registered_at")
+
+
+class UserProfileDetailSerializer(UserProfileSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ("photo", "id", "first_name", "last_name", "city", "country", "age", "gender", "bio", "registered_at")
+
+
+class UserProfileListSerializer(UserProfileSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ("id", "first_name", "last_name", "city", "country", "age", "photo", "registered_at")
 
 
 class UserSerializer(serializers.ModelSerializer):
+    profile = UserProfileSerializer(required=False)
+
     class Meta:
         model = get_user_model()
-        fields = ("id", "email", "password", "is_staff")
+        fields = ("id", "email", "password", "is_staff", "profile")
         read_only_fields = ("is_staff",)
         extra_kwargs = {"password": {"write_only": True, "min_length": 5}}
 
     def create(self, validated_data):
-        """Create a new user with encrypted password and return it"""
-        return get_user_model().objects.create_user(**validated_data)
+        """Create a new user with encrypted password and profile and return it"""
+        user = User.objects.create(email=validated_data["email"])
+        profile_data = validated_data.pop("profile")
+        first_name = profile_data["first_name"]
+        last_name = profile_data["last_name"]
+        age = profile_data["age"]
+        country = profile_data["country"]
+        gender = profile_data["gender"]
+        city = profile_data["city"]
+        bio = profile_data["bio"]
+        userprofile = UserProfile.objects.create(
+            email=user,
+            first_name=first_name,
+            last_name=last_name,
+            city=city,
+            age=age,
+            country=country,
+            gender=gender,
+            bio=bio,
+        )
+        return user
 
     def update(self, instance, validated_data):
         """Update a user, set the password correctly and return it"""
@@ -50,3 +91,11 @@ class AuthTokenSerializer(serializers.Serializer):
 
         data["user"] = user
         return data
+
+
+class UserOwnProfileSerializer(UserProfileSerializer):
+    email = serializers.EmailField(read_only=True)
+
+    class Meta:
+        model = UserProfile
+        fields = ("id", "photo", "email", "first_name", "last_name", "city", "country", "age", "gender", "bio", "registered_at")

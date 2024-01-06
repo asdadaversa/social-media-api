@@ -1,6 +1,17 @@
+import os
+import uuid
+
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils.translation import gettext as _
+from django.utils.text import slugify
+
+
+def user_image_file_path(instance, filename):
+    filename_without_ext, extension = os.path.splitext(filename)
+    filename = f"{slugify(instance.last_name)}-{uuid.uuid4()}{extension}"
+
+    return os.path.join("uploads/users/", filename)
 
 
 class UserManager(BaseUserManager):
@@ -45,3 +56,31 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+
+
+class UserProfile(models.Model):
+    class GenderChoices(models.TextChoices):
+        FEMALE = "Female"
+        MALE = "Male"
+
+    email = models.OneToOneField(User, unique=True, on_delete=models.CASCADE, related_name="profile")
+    first_name = models.CharField(max_length=200, blank=True)
+    last_name = models.CharField(max_length=200, blank=True)
+    city = models.CharField(max_length=50, blank=True)
+    country = models.CharField(max_length=50, blank=True)
+    age = models.IntegerField(blank=True, null=True)
+    gender = models.CharField(max_length=50, choices=GenderChoices.choices, blank=True)
+    bio = models.TextField(blank=True)
+    photo = models.ImageField(blank=True, null=True, upload_to=user_image_file_path)
+    registered_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = "profiles"
+        ordering = ["-id"]
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+    def __str__(self):
+        return f"{self.full_name}, email: {self.email}"
