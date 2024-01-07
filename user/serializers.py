@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
 from django.utils.translation import gettext as _
 from django.core import exceptions
-from user.models import UserProfile, User
+from user.models import UserProfile, User, UserFollowing
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -15,13 +15,50 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserProfileDetailSerializer(UserProfileSerializer):
     class Meta:
         model = UserProfile
-        fields = ("photo", "id", "first_name", "last_name", "city", "country", "age", "gender", "bio", "registered_at")
+        fields = (
+            "photo",
+            "id",
+            "first_name",
+            "last_name",
+            "city",
+            "country",
+            "age",
+            "gender",
+            "bio",
+            "registered_at",
+            "total_followers",
+            "total_follow_to"
+        )
 
 
 class UserProfileListSerializer(UserProfileSerializer):
     class Meta:
         model = UserProfile
-        fields = ("id", "first_name", "last_name", "city", "country", "age", "photo", "registered_at")
+        fields = (
+            "id",
+            "photo",
+            "first_name",
+            "last_name",
+            "city",
+            "country",
+            "age",
+            "registered_at",
+            "total_followers",
+            "total_follow_to"
+        )
+
+
+class UserProfileFollowerSerializer(UserProfileSerializer):
+    class Meta:
+        model = UserProfile
+        fields = (
+            "photo",
+            "id",
+            "full_name",
+            "city",
+            "country",
+            "age",
+        )
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -93,9 +130,56 @@ class AuthTokenSerializer(serializers.Serializer):
         return data
 
 
+class UserProfilePhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ("id", "photo")
+
+
+class UserFollowingSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserFollowing
+        fields = ("id", "your_followers", "you_follow_to", "created")
+
+
+class FollowingSerializer(UserFollowingSerializer):
+    full_name = serializers.SlugRelatedField(source="you_follow_to", slug_field="full_name", read_only=True, many=False)
+    followers_since = serializers.DateTimeField(source="created")
+    info = UserProfileFollowerSerializer(source="you_follow_to")
+
+    class Meta:
+        model = UserFollowing
+        fields = ("full_name", "followers_since", "info")
+
+
+class FollowersSerializer(UserFollowingSerializer):
+    full_name = serializers.SlugRelatedField(source="your_followers", slug_field="full_name", read_only=True, many=False)
+    followers_since = serializers.DateTimeField(source="created")
+    info = UserProfileFollowerSerializer(source="your_followers")
+
+    class Meta:
+        model = UserFollowing
+        fields = ("full_name", "followers_since", "info")
+
+
 class UserOwnProfileSerializer(UserProfileSerializer):
     email = serializers.EmailField(read_only=True)
 
     class Meta:
         model = UserProfile
-        fields = ("id", "photo", "email", "first_name", "last_name", "city", "country", "age", "gender", "bio", "registered_at")
+        fields = (
+            "id",
+            "photo",
+            "email",
+            "first_name",
+            "last_name",
+            "city",
+            "country",
+            "age",
+            "gender",
+            "bio",
+            "registered_at",
+            "total_followers",
+            "total_follow_to",
+        )

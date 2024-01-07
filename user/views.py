@@ -1,26 +1,30 @@
 from rest_framework import generics
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, IsAdminUser
 from rest_framework.settings import api_settings
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import mixins
+from rest_framework import mixins, viewsets
 from rest_framework.viewsets import GenericViewSet
 from django.db.models.query import QuerySet
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 
 from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly
-from user.models import UserProfile
+from user.models import UserProfile, UserFollowing, User
 from user.serializers import (
     UserSerializer,
     AuthTokenSerializer,
     UserProfileSerializer,
     UserProfileListSerializer,
     UserProfileDetailSerializer,
-    UserOwnProfileSerializer
+    UserOwnProfileSerializer,
+    UserFollowingSerializer,
+    UserProfilePhotoSerializer,
+    FollowersSerializer,
+    FollowingSerializer
 )
 
 
@@ -98,6 +102,8 @@ class UserProfileViewSet(
             return UserProfileListSerializer
         if self.action == "retrieve":
             return UserProfileDetailSerializer
+        if self.action == "upload_image":
+            return UserProfilePhotoSerializer
         return UserProfileSerializer
 
     @action(
@@ -116,3 +122,29 @@ class UserProfileViewSet(
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserFollowingViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
+    permission_classes = (IsAdminUser,)
+    serializer_class = UserFollowingSerializer
+    queryset = UserFollowing.objects.all()
+
+
+class UserFollowers(generics.ListAPIView):
+    queryset = UserFollowing.objects.all()
+    serializer_class = FollowersSerializer
+    authentication_classes = (TokenAuthentication,)
+
+    def get_queryset(self):
+        user = self.request.user.profile.id
+        return UserFollowing.objects.filter(you_follow_to_id=user)
+
+
+class UserFollowings(generics.ListAPIView):
+    queryset = UserFollowing.objects.all()
+    serializer_class = FollowingSerializer
+    authentication_classes = (TokenAuthentication,)
+
+    def get_queryset(self):
+        user = self.request.user.profile.id
+        return UserFollowing.objects.filter(your_followers_id=user)
