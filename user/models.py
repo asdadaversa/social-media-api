@@ -77,11 +77,36 @@ class UserProfile(models.Model):
 
     class Meta:
         verbose_name_plural = "profiles"
-        ordering = ["-id"]
+        ordering = ["id"]
 
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
 
+    @property
+    def total_followers(self):
+        return self.followers.count()
+
+    @property
+    def total_follow_to(self):
+        return self.following.count()
+
     def __str__(self):
         return f"{self.full_name}, email: {self.email}"
+
+
+class UserFollowing(models.Model):
+
+    you_follow_to = models.ForeignKey(UserProfile, related_name="followers", on_delete=models.CASCADE)
+    your_followers = models.ForeignKey(UserProfile, related_name="following", on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["you_follow_to", "your_followers"],  name="unique_followers")
+        ]
+
+        ordering = ["-created"]
+
+    def __str__(self):
+        return f"{self.you_follow_to} follows {self.your_followers}"

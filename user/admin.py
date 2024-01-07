@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.utils.translation import gettext as _
 
-from user.models import User, UserProfile
+from user.models import User, UserProfile, UserFollowing
 
 
 class ProfileInline(admin.StackedInline):
@@ -35,3 +35,4 @@ class UserAdmin(DjangoUserAdmin):
 
 
 admin.site.register(UserProfile)
+admin.site.register(UserFollowing)
