@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils.translation import gettext as _
 from django.utils.text import slugify
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 
 def user_image_file_path(instance, filename):
@@ -68,7 +69,7 @@ class UserProfile(models.Model):
     last_name = models.CharField(max_length=200, blank=True)
     city = models.CharField(max_length=50, blank=True)
     country = models.CharField(max_length=50, blank=True)
-    age = models.IntegerField(blank=True, null=True)
+    age = models.IntegerField(blank=True, null=True,validators=[MaxValueValidator(120), MinValueValidator(1)])
     gender = models.CharField(max_length=50, choices=GenderChoices.choices, blank=True)
     bio = models.TextField(blank=True)
     photo = models.ImageField(blank=True, null=True, upload_to=user_image_file_path)

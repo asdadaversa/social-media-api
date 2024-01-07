@@ -10,6 +10,7 @@ from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 from django.db.models.query import QuerySet
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 
 from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly
 from user.models import UserProfile
@@ -21,6 +22,12 @@ from user.serializers import (
     UserProfileDetailSerializer,
     UserOwnProfileSerializer
 )
+
+
+class UserProfilesPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
 
 
 class ManageUserView(generics.RetrieveUpdateAPIView):
@@ -35,7 +42,7 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
 class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
     authentication_classes = (TokenAuthentication,)
-    permission_classes = (AnonPermissionOnly,)
+    # permission_classes = (AnonPermissionOnly,)
 
 
 class CreateTokenView(ObtainAuthToken):
@@ -61,6 +68,7 @@ class UserProfileViewSet(
     serializer_class = UserProfileSerializer
     permission_classes = (IsOwnerOrReadOnly,)
     authentication_classes = (TokenAuthentication,)
+    pagination_class = UserProfilesPagination
 
     def get_queryset(self) -> QuerySet:
         queryset = self.queryset
