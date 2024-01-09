@@ -69,7 +69,7 @@ class UserProfile(models.Model):
     last_name = models.CharField(max_length=200, blank=True)
     city = models.CharField(max_length=50, blank=True)
     country = models.CharField(max_length=50, blank=True)
-    age = models.IntegerField(blank=True, null=True,validators=[MaxValueValidator(120), MinValueValidator(1)])
+    age = models.IntegerField(blank=True, null=True, validators=[MaxValueValidator(120), MinValueValidator(1)])
     gender = models.CharField(max_length=50, choices=GenderChoices.choices, blank=True)
     bio = models.TextField(blank=True)
     photo = models.ImageField(blank=True, null=True, upload_to=user_image_file_path)
@@ -85,11 +85,11 @@ class UserProfile(models.Model):
 
     @property
     def total_followers(self):
-        return self.followers.count()
+        return self.following.count()
 
     @property
     def total_follow_to(self):
-        return self.following.count()
+        return self.followers.count()
 
     def __str__(self):
         return f"{self.full_name}, email: {self.email}"
@@ -97,8 +97,8 @@ class UserProfile(models.Model):
 
 class UserFollowing(models.Model):
 
-    you_follow_to = models.ForeignKey(UserProfile, related_name="followers", on_delete=models.CASCADE)
-    your_followers = models.ForeignKey(UserProfile, related_name="following", on_delete=models.CASCADE)
+    your_followers = models.ForeignKey(UserProfile, related_name="followers", on_delete=models.CASCADE)
+    you_follow_to = models.ForeignKey(UserProfile, related_name="following", on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:

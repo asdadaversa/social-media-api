@@ -6,7 +6,7 @@ from rest_framework.settings import api_settings
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import mixins, viewsets
+from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 from django.db.models.query import QuerySet
 from rest_framework.decorators import action
@@ -38,6 +38,7 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
     queryset = UserProfile.objects.all()
     serializer_class = UserOwnProfileSerializer
     authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     def get_object(self):
         return self.request.user.profile
@@ -70,7 +71,7 @@ class UserProfileViewSet(
 ):
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
-    permission_classes = (IsOwnerOrReadOnly,)
+    permission_classes = (IsAuthenticated,)
     authentication_classes = (TokenAuthentication,)
     pagination_class = UserProfilesPagination
 
@@ -124,16 +125,17 @@ class UserProfileViewSet(
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserFollowingViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
+class UserFollowingViewSet(mixins.ListModelMixin, GenericViewSet):
     permission_classes = (IsAdminUser,)
     serializer_class = UserFollowingSerializer
     queryset = UserFollowing.objects.all()
 
 
 class UserFollowers(generics.ListAPIView):
-    queryset = UserFollowing.objects.all()
     serializer_class = FollowersSerializer
+    queryset = UserFollowing.objects.all()
     authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         user = self.request.user.profile.id
@@ -144,7 +146,50 @@ class UserFollowings(generics.ListAPIView):
     queryset = UserFollowing.objects.all()
     serializer_class = FollowingSerializer
     authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         user = self.request.user.profile.id
         return UserFollowing.objects.filter(your_followers_id=user)
+
+
+class UserFollow(APIView):
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+
+    def get_object(self, pk):
+        return UserProfile.objects.get(pk=pk)
+
+    def get(self, request, pk, format=None):
+        user = self.get_object(pk)
+        serializer = UserProfileDetailSerializer(user)
+        return Response(serializer.data)
+
+    def post(self, request, pk, format=None):
+        user = self.request.user.profile
+        follow = self.get_object(pk)
+
+        if user == follow:
+            return Response({'message': f"You can't subscribe on your self"})
+        if user.id in [follower.your_followers_id for follower in follow.following.all()]:
+            return Response({'message': f"You already  follow user {follow.first_name} {follow.last_name}"})
+        UserFollowing.objects.create(you_follow_to=follow, your_followers=user)
+
+        serializer = UserProfileDetailSerializer(follow)
+        first_name = serializer.data["first_name"]
+        last_name = serializer.data["last_name"]
+        user_id = serializer.data["id"]
+
+        return Response({'message': f"You successful subscribe on {first_name} {last_name} (user_id: {user_id})"})
+
+    def delete(self, request, pk, format=None):
+        user = self.request.user.profile
+        follow = self.get_object(pk)
+        connection = UserFollowing.objects.filter(you_follow_to=follow, your_followers=user).first()
+        connection.delete()
+        serializer = UserProfileSerializer(follow)
+        first_name = serializer.data["first_name"]
+        last_name = serializer.data["last_name"]
+        user_id = serializer.data["id"]
+
+        return Response({'message': f"You successful unsubscribe from {first_name} {last_name} (user_id: {user_id})"})

@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model, authenticate
 from django.utils.translation import gettext as _
 from django.core import exceptions
 from user.models import UserProfile, User, UserFollowing
+from rest_framework.validators import UniqueTogetherValidator
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -12,26 +13,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ("id", "email_id", "first_name", "last_name", "city", "country", "age", "gender", "bio", "registered_at")
 
 
-class UserProfileDetailSerializer(UserProfileSerializer):
-    class Meta:
-        model = UserProfile
-        fields = (
-            "photo",
-            "id",
-            "first_name",
-            "last_name",
-            "city",
-            "country",
-            "age",
-            "gender",
-            "bio",
-            "registered_at",
-            "total_followers",
-            "total_follow_to"
-        )
-
-
 class UserProfileListSerializer(UserProfileSerializer):
+
     class Meta:
         model = UserProfile
         fields = (
@@ -44,7 +27,7 @@ class UserProfileListSerializer(UserProfileSerializer):
             "age",
             "registered_at",
             "total_followers",
-            "total_follow_to"
+            "total_follow_to",
         )
 
 
@@ -144,23 +127,27 @@ class UserFollowingSerializer(serializers.ModelSerializer):
 
 
 class FollowingSerializer(UserFollowingSerializer):
+    photo = serializers.ImageField(source="you_follow_to.photo", read_only=True)
+    user_id = serializers.SlugRelatedField(source="you_follow_to", slug_field="id", read_only=True, many=False)
+    city = serializers.SlugRelatedField(source="you_follow_to", slug_field="city", read_only=True, many=False)
     full_name = serializers.SlugRelatedField(source="you_follow_to", slug_field="full_name", read_only=True, many=False)
     followers_since = serializers.DateTimeField(source="created")
-    info = UserProfileFollowerSerializer(source="you_follow_to")
 
     class Meta:
         model = UserFollowing
-        fields = ("full_name", "followers_since", "info")
+        fields = ("photo", "user_id", "full_name", "city", "followers_since")
 
 
 class FollowersSerializer(UserFollowingSerializer):
+    photo = serializers.ImageField(source="your_followers.photo", read_only=True)
+    user_id = serializers.SlugRelatedField(source="your_followers", slug_field="id", read_only=True, many=False)
     full_name = serializers.SlugRelatedField(source="your_followers", slug_field="full_name", read_only=True, many=False)
+    city = serializers.SlugRelatedField(source="your_followers", slug_field="city", read_only=True, many=False)
     followers_since = serializers.DateTimeField(source="created")
-    info = UserProfileFollowerSerializer(source="your_followers")
 
     class Meta:
         model = UserFollowing
-        fields = ("full_name", "followers_since", "info")
+        fields = ("photo", "user_id", "full_name", "city", "followers_since")
 
 
 class UserOwnProfileSerializer(UserProfileSerializer):
@@ -172,6 +159,26 @@ class UserOwnProfileSerializer(UserProfileSerializer):
             "id",
             "photo",
             "email",
+            "first_name",
+            "last_name",
+            "city",
+            "country",
+            "age",
+            "gender",
+            "bio",
+            "registered_at",
+            "total_followers",
+            "total_follow_to",
+        )
+
+
+class UserProfileDetailSerializer(UserProfileSerializer):
+
+    class Meta:
+        model = UserProfile
+        fields = (
+            "photo",
+            "id",
             "first_name",
             "last_name",
             "city",

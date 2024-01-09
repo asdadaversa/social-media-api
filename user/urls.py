@@ -1,7 +1,7 @@
 from rest_framework import routers
 from django.urls import path, include
 
-from user.views import(
+from user.views import (
     CreateUserView,
     CreateTokenView,
     LogoutView,
@@ -9,7 +9,7 @@ from user.views import(
     UserFollowingViewSet,
     ManageUserView,
     UserFollowers,
-    UserFollowings,
+    UserFollowings, UserFollow,
 )
 
 router = routers.DefaultRouter()
@@ -23,6 +23,7 @@ urlpatterns = [
     path("profile/", ManageUserView.as_view(), name="profile"),
     path("followers/", UserFollowers.as_view(), name="followers"),
     path("you_follow/", UserFollowings.as_view(), name="followers"),
+    path("users/<int:pk>/follow/", UserFollow.as_view(), name="follow"),
 
     path("", include(router.urls))
 ]
