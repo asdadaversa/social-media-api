@@ -17,7 +17,6 @@ def post_image_file_path(instance, filename):
 class Post(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
-    # hashtags = models.ManyToManyField("PostHashtags", blank=True, related_name="posts")
     created_time = models.DateTimeField(auto_now_add=True)
     photo = models.ImageField(blank=True, null=True, upload_to=post_image_file_path)
 
