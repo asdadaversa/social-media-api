@@ -9,22 +9,25 @@ from user.views import (
     UserFollowingViewSet,
     ManageUserView,
     UserFollowers,
-    UserFollowings, UserFollow,
+    UserFollowings,
+    UserFollow,
+    api_root
 )
 
 router = routers.DefaultRouter()
-router.register("users", UserProfileViewSet)
-router.register("following_history", UserFollowingViewSet)
+router.register("users", UserProfileViewSet, basename="users")
+router.register("following_history", UserFollowingViewSet, basename="following-history")
 
 urlpatterns = [
     path("register/", CreateUserView.as_view(), name="create"),
     path("login/", CreateTokenView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("profile/", ManageUserView.as_view(), name="profile"),
+    path("users/<int:pk>/", UserProfileViewSet.as_view({"get":"retrieve"}), name="userprofile-detail"),
     path("followers/", UserFollowers.as_view(), name="followers"),
-    path("you_follow/", UserFollowings.as_view(), name="followers"),
-    path("users/<int:pk>/follow/", UserFollow.as_view(), name="follow"),
-
+    path("you_follow/", UserFollowings.as_view(), name="you-follow"),
+    path("users/<int:pk>/follow/", UserFollow.as_view(), name="follow-detail"),
+    path("", api_root),
     path("", include(router.urls))
 ]
 

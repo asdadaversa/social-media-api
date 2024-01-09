@@ -9,8 +9,9 @@ from rest_framework.views import APIView
 from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 from django.db.models.query import QuerySet
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.reverse import reverse
 
 from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly
 from user.models import UserProfile, UserFollowing, User
@@ -26,6 +27,21 @@ from user.serializers import (
     FollowersSerializer,
     FollowingSerializer
 )
+
+
+@api_view(['GET'])
+def api_root(request, format=None):
+    return Response({
+        "register": reverse("user:create",  request=request, format=format),
+        "login": reverse("user:login",  request=request, format=format),
+        "logout": reverse("user:logout",  request=request, format=format),
+        "user_own_profile": reverse("user:profile", request=request, format=format),
+        "user_followers": reverse("user:followers", request=request, format=format),
+        "user_follow_to": reverse("user:you-follow", request=request, format=format),
+        "all_users": reverse("user:users-list", request=request, format=format),
+        "following_history": reverse("user:following-history-list", request=request, format=format),
+        # "follow_user": reverse("user:users/<int:pk>/follow", request=request, format=format),
+    })
 
 
 class UserProfilesPagination(PageNumberPagination):

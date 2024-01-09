@@ -156,6 +156,7 @@ class UserOwnProfileSerializer(UserProfileSerializer):
     class Meta:
         model = UserProfile
         fields = (
+            "followers",
             "id",
             "photo",
             "email",
