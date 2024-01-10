@@ -50,7 +50,7 @@ class UserProfilesPagination(PageNumberPagination):
     max_page_size = 1000
 
 
-class ManageUserView(generics.RetrieveUpdateAPIView):
+class ManageUserView(generics.RetrieveUpdateDestroyAPIView):
     queryset = UserProfile.objects.all()
     serializer_class = UserOwnProfileSerializer
     authentication_classes = (TokenAuthentication,)

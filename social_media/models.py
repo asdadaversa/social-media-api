@@ -2,7 +2,6 @@ import os
 import uuid
 
 from django.db import models
-from django.conf import settings
 from django.utils.text import slugify
 import user.models
 
@@ -14,11 +13,19 @@ def post_image_file_path(instance, filename):
     return os.path.join("uploads/post/", filename)
 
 
+class PostHashtags(models.Model):
+    hashtag = models.CharField(max_length=20, null=False)
+
+    def __str__(self):
+        return f"#{self.hashtag}"
+
+
 class Post(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
     created_time = models.DateTimeField(auto_now_add=True)
     photo = models.ImageField(blank=True, null=True, upload_to=post_image_file_path)
+    hashtags = models.CharField(max_length=100, blank=True, null=True)
 
     author = models.ForeignKey(
         user.models.UserProfile,
@@ -33,16 +40,6 @@ class Post(models.Model):
         return (f"owner:{self.author},"
                 f"title: {self.title},"
                 f"created: {self.created_time}")
-
-
-class PostHashtags(models.Model):
-    hashtag = models.CharField(max_length=20, null=False)
-    post = models.ForeignKey(
-        Post, on_delete=models.CASCADE, related_name="hashes"
-    )
-
-    def __str__(self):
-        return f"#{self.hashtag}"
 
 
 class Commentary(models.Model):
