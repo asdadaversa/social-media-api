@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model, authenticate
 from django.utils.translation import gettext as _
 from django.core import exceptions
 from user.models import UserProfile, User, UserFollowing
-from rest_framework.validators import UniqueTogetherValidator
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -156,7 +155,6 @@ class UserOwnProfileSerializer(UserProfileSerializer):
     class Meta:
         model = UserProfile
         fields = (
-            "followers",
             "id",
             "photo",
             "email",
