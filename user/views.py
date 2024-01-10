@@ -37,10 +37,12 @@ def api_root(request, format=None):
         "logout": reverse("user:logout",  request=request, format=format),
         "user_own_profile": reverse("user:profile", request=request, format=format),
         "user_followers": reverse("user:followers", request=request, format=format),
-        "user_follow_to": reverse("user:you-follow", request=request, format=format),
+        "user_follow_to": reverse("user:followings", request=request, format=format),
         "all_users": reverse("user:users-list", request=request, format=format),
-        "following_history": reverse("user:following-history-list", request=request, format=format),
-        # "follow_user": reverse("user:users/<int:pk>/follow", request=request, format=format),
+        "following_history(admin only)": reverse("user:following-history-list", request=request, format=format),
+        "all_posts": reverse("social:posts-list", request=request, format=format),
+        "your_own_posts": reverse("social:your-post", request=request, format=format),
+        "your_following_posts": reverse("social:following-post", request=request, format=format),
     })
 
 

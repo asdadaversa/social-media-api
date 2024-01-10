@@ -24,8 +24,8 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(), name="logout"),
     path("profile/", ManageUserView.as_view(), name="profile"),
     path("users/<int:pk>/", UserProfileViewSet.as_view({"get":"retrieve"}), name="userprofile-detail"),
-    path("followers/", UserFollowers.as_view(), name="followers"),
-    path("you_follow/", UserFollowings.as_view(), name="you-follow"),
+    path("profile/followers/", UserFollowers.as_view(), name="followers"),
+    path("profile/followings/", UserFollowings.as_view(), name="followings"),
     path("users/<int:pk>/follow/", UserFollow.as_view(), name="follow-detail"),
     path("", api_root),
     path("", include(router.urls))
