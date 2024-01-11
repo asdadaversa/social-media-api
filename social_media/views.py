@@ -1,19 +1,27 @@
-from rest_framework import viewsets, generics, status
+from rest_framework import viewsets, generics, status, mixins
 from rest_framework.decorators import action
 from rest_framework.authentication import TokenAuthentication
 from django.db.models.query import QuerySet
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
-from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly
+from rest_framework.viewsets import GenericViewSet
+from rest_framework.pagination import PageNumberPagination
+from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly, IsOwnerOrReadOnlyUserProfile
 
-from social_media.models import Post, Commentary
-from social_media.serializers import PostSerializer, CommentarySerializer, PostImageSerializer
+from social_media.models import Post, Commentary, Like
+from social_media.serializers import PostSerializer, CommentarySerializer, PostImageSerializer, LikeSerializer
 from user.models import UserProfile
 
 
 def params_to_ints(qs):
     """Converts a list of string IDs to a list of integers"""
     return [int(str_id) for str_id in qs.split(",")]
+
+
+class CommentaryPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -84,8 +92,17 @@ class FollowingPostView(generics.ListAPIView):
         return Post.objects.filter(author__id__in=ids)
 
 
-class CommentaryViewSet(viewsets.ModelViewSet):
+class CommentaryViewSet(mixins.ListModelMixin, GenericViewSet):
     queryset = Commentary.objects.all()
     serializer_class = CommentarySerializer
-    permission_classes = (IsOwnerOrReadOnly,)
+    permission_classes = (IsAdminUser,)
     authentication_classes = (TokenAuthentication,)
+    pagination_class = CommentaryPagination
+
+
+class LikeViewSet(mixins.ListModelMixin, GenericViewSet):
+    queryset = Like.objects.all()
+    serializer_class = LikeSerializer
+    permission_classes = (IsAdminUser,)
+    authentication_classes = (TokenAuthentication,)
+    pagination_class = CommentaryPagination

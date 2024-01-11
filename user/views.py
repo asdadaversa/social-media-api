@@ -40,10 +40,12 @@ def api_root(request, format=None):
         "user_followers": reverse("user:followers", request=request, format=format),
         "user_follow_to": reverse("user:followings", request=request, format=format),
         "all_users": reverse("user:users-list", request=request, format=format),
-        "following_history(admin only)": reverse("user:following-history-list", request=request, format=format),
         "all_posts": reverse("social:posts-list", request=request, format=format),
         "your_own_posts": reverse("social:your-post", request=request, format=format),
         "your_following_posts": reverse("social:following-post", request=request, format=format),
+        "following history(sys info admin only)": reverse("user:following-history-list", request=request, format=format),
+        "all_comments(sys info admin only)": reverse("social:comments-history-list", request=request, format=format),
+        "all_likes(sys info admin only)": reverse("social:likes-history-list", request=request, format=format),
     })
 
 
@@ -82,6 +84,12 @@ def unfollowing_user(request, pk, format=None):
 
 
 class UserProfilesPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
+
+class FollowingPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 1000
@@ -198,6 +206,7 @@ class UserFollowingViewSet(mixins.ListModelMixin, GenericViewSet):
     permission_classes = (IsAdminUser,)
     serializer_class = UserFollowingSerializer
     queryset = UserFollowing.objects.all()
+    pagination_class = FollowingPagination
 
 
 class UserFollowers(generics.ListAPIView):
