@@ -60,3 +60,25 @@ class Commentary(models.Model):
 
     def __str__(self) -> str:
         return f"user:{self.user}, created: {self.created_time}"
+
+
+class Like(models.Model):
+    user = models.ForeignKey(
+        user.models.UserProfile,
+        on_delete=models.DO_NOTHING,
+        related_name="likes"
+    )
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name="post_likes")
+    created_time = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_time", )
+        constraints = [
+            models.UniqueConstraint(fields=["post", "user"],  name="post_like")
+        ]
+
+    def __str__(self) -> str:
+        return f"user:{self.user}, liked: {self.created_time}"
