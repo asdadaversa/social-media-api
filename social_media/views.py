@@ -2,7 +2,7 @@ from rest_framework import viewsets, generics, status
 from rest_framework.decorators import action
 from rest_framework.authentication import TokenAuthentication
 from django.db.models.query import QuerySet
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly
 
@@ -41,19 +41,14 @@ class PostViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-    def get_serializer_class(self):
-        if self.action == "upload_image":
-            return PostImageSerializer
-        return PostSerializer
-
     @action(
-        methods=["GET", "PUT", "POST"],
+        methods=["PUT", "GET"],
         detail=True,
-        url_path="upload-image",
-        permission_classes=[IsAuthenticated],
+        url_path="upload-photo",
+        permission_classes=[IsAdminUser],
     )
-    def upload_image(self, request, pk=None):
-        """Endpoint for uploading image to specific post"""
+    def upload_photo(self, request, pk=None):
+        """Endpoint for uploading image to specific userprofile"""
         userprofile = self.get_object()
         serializer = self.get_serializer(userprofile, data=request.data)
 

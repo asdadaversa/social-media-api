@@ -3,7 +3,7 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, IsAdminUser
 from rest_framework.settings import api_settings
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import mixins
@@ -12,8 +12,9 @@ from django.db.models.query import QuerySet
 from rest_framework.decorators import action, api_view
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.reverse import reverse
+from django.shortcuts import get_object_or_404
 
-from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly
+from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly, IsOwnerOrReadOnlyUserProfile
 from user.models import UserProfile, UserFollowing, User
 from user.serializers import (
     UserSerializer,
@@ -44,6 +45,40 @@ def api_root(request, format=None):
         "your_own_posts": reverse("social:your-post", request=request, format=format),
         "your_following_posts": reverse("social:following-post", request=request, format=format),
     })
+
+
+def following_user(request, pk, format=None):
+    user = request.user.profile
+    follow = get_object_or_404(UserProfile, pk=pk)
+
+    if user == follow:
+        return Response({'message': f"You can't subscribe on your self"})
+    if user.id in [follower.your_followers_id for follower in follow.following.all()]:
+        return Response({'message': f"You already  follow user {follow.first_name} {follow.last_name}"})
+    UserFollowing.objects.create(you_follow_to=follow, your_followers=user)
+
+    serializer = UserProfileDetailSerializer(follow)
+    first_name = serializer.data["first_name"]
+    last_name = serializer.data["last_name"]
+    user_id = serializer.data["id"]
+
+    return Response({'message': f"You successful subscribe on {first_name} {last_name} (user_id: {user_id})"})
+
+
+def unfollowing_user(request, pk, format=None):
+    user = request.user.profile
+    follow = get_object_or_404(UserProfile, pk=pk)
+
+    connection = UserFollowing.objects.filter(you_follow_to=follow, your_followers=user).first()
+    if connection:
+        connection.delete()
+        serializer = UserProfileSerializer(follow)
+        first_name = serializer.data["first_name"]
+        last_name = serializer.data["last_name"]
+        user_id = serializer.data["id"]
+        return Response({'message': f"You successful unsubscribe from {first_name} {last_name} (user_id: {user_id})"})
+    else:
+        return Response({'message': f"You ate not followers"})
 
 
 class UserProfilesPagination(PageNumberPagination):
@@ -85,11 +120,11 @@ class LogoutView(APIView):
 class UserProfileViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
-    GenericViewSet,
+    viewsets.GenericViewSet,
 ):
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsOwnerOrReadOnlyUserProfile,)
     authentication_classes = (TokenAuthentication,)
     pagination_class = UserProfilesPagination
 
@@ -121,17 +156,17 @@ class UserProfileViewSet(
             return UserProfileListSerializer
         if self.action == "retrieve":
             return UserProfileDetailSerializer
-        if self.action == "upload_image":
+        if self.action == "upload_photo":
             return UserProfilePhotoSerializer
         return UserProfileSerializer
 
     @action(
-        methods=["GET", "PUT", "POST"],
+        methods=["GET", "PUT"],
         detail=True,
-        url_path="upload-image",
-        permission_classes=[IsAuthenticated],
+        url_path="upload-photo",
+        permission_classes=[IsAdminUser],
     )
-    def upload_image(self, request, pk=None):
+    def upload_photo(self, request, pk=None):
         """Endpoint for uploading image to specific userprofile"""
         userprofile = self.get_object()
         serializer = self.get_serializer(userprofile, data=request.data)
@@ -141,6 +176,22 @@ class UserProfileViewSet(
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(
+        methods=["GET", "POST"],
+        detail=True,
+        permission_classes=[IsAuthenticated],
+    )
+    def follow_user(self, request, pk, format=None):
+        return following_user(request, pk, format=None)
+
+    @action(
+        methods=["GET", "DELETE"],
+        detail=True,
+        permission_classes=[IsAuthenticated],
+    )
+    def unfollow_user(self, request, pk, format=None):
+        return unfollowing_user(request, pk, format=None)
 
 
 class UserFollowingViewSet(mixins.ListModelMixin, GenericViewSet):
@@ -184,30 +235,7 @@ class UserFollow(APIView):
         return Response(serializer.data)
 
     def post(self, request, pk, format=None):
-        user = self.request.user.profile
-        follow = self.get_object(pk)
-
-        if user == follow:
-            return Response({'message': f"You can't subscribe on your self"})
-        if user.id in [follower.your_followers_id for follower in follow.following.all()]:
-            return Response({'message': f"You already  follow user {follow.first_name} {follow.last_name}"})
-        UserFollowing.objects.create(you_follow_to=follow, your_followers=user)
-
-        serializer = UserProfileDetailSerializer(follow)
-        first_name = serializer.data["first_name"]
-        last_name = serializer.data["last_name"]
-        user_id = serializer.data["id"]
-
-        return Response({'message': f"You successful subscribe on {first_name} {last_name} (user_id: {user_id})"})
+        return following_user(request, pk, format=None)
 
     def delete(self, request, pk, format=None):
-        user = self.request.user.profile
-        follow = self.get_object(pk)
-        connection = UserFollowing.objects.filter(you_follow_to=follow, your_followers=user).first()
-        connection.delete()
-        serializer = UserProfileSerializer(follow)
-        first_name = serializer.data["first_name"]
-        last_name = serializer.data["last_name"]
-        user_id = serializer.data["id"]
-
-        return Response({'message': f"You successful unsubscribe from {first_name} {last_name} (user_id: {user_id})"})
+        return unfollowing_user(request, pk, format=None)

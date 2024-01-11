@@ -12,6 +12,17 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         return obj.author == request.user.profile
 
 
+class IsOwnerOrReadOnlyUserProfile(permissions.BasePermission):
+
+    message = "You must be the owner to perform this action."
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        return obj.email == request.user.profile
+
+
 class AnonPermissionOnly(permissions.BasePermission):
 
     message = "You are already authenticated."
