@@ -1,5 +1,4 @@
 from rest_framework import viewsets, generics, status, mixins
-from rest_framework.generics import CreateAPIView
 from rest_framework.decorators import action
 from rest_framework.authentication import TokenAuthentication
 from django.db.models.query import QuerySet
@@ -17,11 +16,34 @@ from social_media.models import Post, Commentary, Like
 from social_media.serializers import PostSerializer, CommentarySerializer, PostImageSerializer, LikeSerializer, \
     CommentaryListSerializer, CommentaryPostSerializer, PostListSerializer
 from user.models import UserProfile
+from user.serializers import UserProfileDetailSerializer
 
 
 def params_to_ints(qs):
     """Converts a list of string IDs to a list of integers"""
     return [int(str_id) for str_id in qs.split(",")]
+
+
+def like_post(request, *args, **kwargs):
+    pk = kwargs.get("pk")
+    user = request.user.profile
+    post = get_object_or_404(Post, pk=pk)
+
+    if user.id in [post.user_id for post in post.post_likes.all()]:
+        return Response({'message': f"You already liked this post"})
+    Like.objects.create(user=user, post=post)
+    return Response({'message': f"post was liked"})
+
+
+def unlike_post(request, *args, **kwargs):
+    pk = kwargs.get("pk")
+    user = request.user.profile
+    post = get_object_or_404(Post, pk=pk)
+    like = Like.objects.filter(user=user, post=post).first()
+    if like:
+        like.delete()
+        return Response({'message': f"you have unliked post"})
+    return Response({'message': f"you never liked post"})
 
 
 class CommentaryPagination(PageNumberPagination):
@@ -76,6 +98,22 @@ class PostViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(
+        methods=["GET", "POST"],
+        detail=True,
+        permission_classes=[IsAuthenticated],
+    )
+    def like_the_post(self, request, *args, **kwargs):
+        return like_post(request, *args, **kwargs)
+
+    @action(
+        methods=["GET", "DELETE"],
+        detail=True,
+        permission_classes=[IsAuthenticated],
+    )
+    def unlike_the_post(self, request, *args, **kwargs):
+        return unlike_post(request, *args, **kwargs)
 
 
 class OwnPostView(generics.ListAPIView):
@@ -167,3 +205,35 @@ class CommentaryDeleteApiView(generics.DestroyAPIView):
         commentary = get_object_or_404(Commentary, pk=pk)
         commentary.delete()
         return Response({'message': f"commentary was successful deleted"})
+
+
+class OwnCommentary(generics.ListAPIView):
+    serializer_class = CommentaryListSerializer
+    queryset = Commentary.objects.all()
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        user = self.request.user.profile.id
+        return Commentary.objects.filter(user_id=user)
+
+
+class Likes(APIView):
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+
+    def get_object(self, *args, **kwargs):
+        pk = self.kwargs.get("pk")
+        return get_object_or_404(Post, pk=pk)
+
+    def get(self, request, pk, format=None):
+        post = self.get_object(pk)
+        serializer = PostSerializer(post)
+        return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        return like_post(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return unlike_post(request, *args, **kwargs)
+

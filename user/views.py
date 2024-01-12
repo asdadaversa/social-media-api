@@ -29,6 +29,10 @@ from user.serializers import (
     FollowingSerializer
 )
 
+    # add this to api_root
+    # path("posts/<int:pk>/comment/", CommentView.as_view(), name="comment-post"),
+    # path("comment/<int:pk>/delete/", CommentaryDeleteApiView.as_view(), name="comment-delete"),
+    # path("users/<int:pk>/follow/", UserFollow.as_view(), name="follow-detail"),
 
 @api_view(['GET'])
 def api_root(request, format=None):
@@ -80,7 +84,7 @@ def unfollowing_user(request, pk, format=None):
         user_id = serializer.data["id"]
         return Response({'message': f"You successful unsubscribe from {first_name} {last_name} (user_id: {user_id})"})
     else:
-        return Response({'message': f"You ate not followers"})
+        return Response({'message': f"You are not followers"})
 
 
 class UserProfilesPagination(PageNumberPagination):
@@ -236,7 +240,7 @@ class UserFollow(APIView):
     authentication_classes = (TokenAuthentication,)
 
     def get_object(self, pk):
-        return UserProfile.objects.get(pk=pk)
+        return get_object_or_404(UserProfile, pk=pk)
 
     def get(self, request, pk, format=None):
         user = self.get_object(pk)
