@@ -33,6 +33,12 @@ class Post(models.Model):
         related_name="posts"
     )
 
+    def comments_count(self):
+        return self.posts.count()
+
+    def likes_count(self):
+        return self.post_likes.count()
+
     class Meta:
         ordering = ("-created_time", )
 
