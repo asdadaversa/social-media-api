@@ -6,7 +6,9 @@ from social_media.views import (
     OwnPostView,
     FollowingPostView,
     CommentaryViewSet,
-    LikeViewSet
+    LikeViewSet,
+    CommentView,
+    CommentaryDeleteApiView,
 )
 
 router = routers.DefaultRouter()
@@ -18,6 +20,8 @@ router.register("likes-history", LikeViewSet, basename="likes-history")
 urlpatterns = [
     path("posts/your-posts", OwnPostView.as_view(), name="your-post"),
     path("posts/following-post", FollowingPostView.as_view(), name="following-post"),
+    path("posts/<int:pk>/comment/", CommentView.as_view(), name="comment-post"),
+    path("comment/<int:pk>/delete/", CommentaryDeleteApiView.as_view(), name="comment-delete"),
     path("", include(router.urls))
 ]
 

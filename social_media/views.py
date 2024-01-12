@@ -1,4 +1,5 @@
 from rest_framework import viewsets, generics, status, mixins
+from rest_framework.generics import CreateAPIView
 from rest_framework.decorators import action
 from rest_framework.authentication import TokenAuthentication
 from django.db.models.query import QuerySet
@@ -6,10 +7,15 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.pagination import PageNumberPagination
-from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly, IsOwnerOrReadOnlyUserProfile
+
+from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly, IsOwnerOrReadOnlyUserProfile, \
+    IsOwnerOrReadOnlyDeleteComment, IsAdminOrOwner
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
 
 from social_media.models import Post, Commentary, Like
-from social_media.serializers import PostSerializer, CommentarySerializer, PostImageSerializer, LikeSerializer
+from social_media.serializers import PostSerializer, CommentarySerializer, PostImageSerializer, LikeSerializer, \
+    CommentaryListSerializer, CommentaryPostSerializer, PostListSerializer
 from user.models import UserProfile
 
 
@@ -49,8 +55,13 @@ class PostViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    def get_serializer_class(self):
+        if self.action == "list":
+            return PostListSerializer
+        return PostSerializer
+
     @action(
-        methods=["PUT", "GET"],
+        methods=["GET", "PUT"],
         detail=True,
         url_path="upload-photo",
         permission_classes=[IsAdminUser],
@@ -92,17 +103,67 @@ class FollowingPostView(generics.ListAPIView):
         return Post.objects.filter(author__id__in=ids)
 
 
-class CommentaryViewSet(mixins.ListModelMixin, GenericViewSet):
+class CommentaryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin, GenericViewSet):
     queryset = Commentary.objects.all()
-    serializer_class = CommentarySerializer
+    serializer_class = CommentaryListSerializer
     permission_classes = (IsAdminUser,)
     authentication_classes = (TokenAuthentication,)
     pagination_class = CommentaryPagination
 
+    #add search
 
-class LikeViewSet(mixins.ListModelMixin, GenericViewSet):
+
+class LikeViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
     queryset = Like.objects.all()
     serializer_class = LikeSerializer
     permission_classes = (IsAdminUser,)
     authentication_classes = (TokenAuthentication,)
     pagination_class = CommentaryPagination
+
+
+class CommentView(APIView):
+    queryset = Commentary.objects.all()
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+    serializer_class = CommentarySerializer
+
+    def get_object(self, *args, **kwargs):
+        pk = self.kwargs.get("pk")
+        return get_object_or_404(Post, pk=pk)
+
+    def get(self, request, pk, format=None):
+        post = self.get_object(pk)
+        serializer = PostSerializer(post)
+        return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        user = self.request.user.profile
+        post = self.get_object()
+        content = self.request.data["content"]
+        if content:
+            comment = Commentary.objects.create(user=user, post=post, content=content)
+            serializer = CommentaryPostSerializer(comment)
+            return Response(("Your commentary was posted", serializer.data), status=status.HTTP_201_CREATED)
+        else:
+            return Response("Cant post empty comment")
+
+
+class CommentaryDeleteApiView(generics.DestroyAPIView):
+    permission_classes = (IsOwnerOrReadOnlyDeleteComment,)
+    authentication_classes = (TokenAuthentication,)
+
+    def get_object(self, *args, **kwargs):
+        pk = self.kwargs.get("pk")
+        return get_object_or_404(Commentary, pk=pk)
+
+    def get(self, request, *args, **kwargs):
+        pk = self.kwargs.get("pk")
+        comment = self.get_object(pk)
+        serializer = CommentaryListSerializer(comment)
+        return Response(serializer.data)
+
+    def delete(self, request, *args, **kwargs):
+        pk = self.kwargs.get("pk")
+        commentary = get_object_or_404(Commentary, pk=pk)
+        commentary.delete()
+        return Response({'message': f"commentary was successful deleted"})
