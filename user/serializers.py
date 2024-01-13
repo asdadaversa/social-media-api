@@ -53,8 +53,10 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {"password": {"write_only": True, "min_length": 5}}
 
     def create(self, validated_data):
-        """Create a new user with encrypted password and profile and return it"""
-        user = User.objects.create(email=validated_data["email"])
+        password = validated_data.pop("password", None)
+        user = User.objects.create(email=validated_data["email"], password=password)
+        user.set_password(password)
+        user.save()
         profile_data = validated_data.pop("profile")
         first_name = profile_data["first_name"]
         last_name = profile_data["last_name"]

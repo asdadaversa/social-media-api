@@ -24,7 +24,6 @@ urlpatterns = [
     path("login/", CreateTokenView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("profile/", ManageUserView .as_view(), name="profile"),
-    # path("users/<int:pk>/", UserProfileViewSet.as_view({"get":"retrieve"}), name="userprofile-detail"),
     path("profile/followers/", UserFollowers.as_view(), name="followers"),
     path("profile/followings/", UserFollowings.as_view(), name="followings"),
     path("users/<int:pk>/follow/", UserFollow.as_view(), name="follow-detail"),

@@ -53,7 +53,7 @@ class CommentaryPagination(PageNumberPagination):
 
 
 class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.all()
+    queryset = Post.objects.select_related("author").prefetch_related("posts", "post_likes")
     serializer_class = PostSerializer
     permission_classes = (IsOwnerOrReadOnly,)
     authentication_classes = (TokenAuthentication,)
@@ -121,13 +121,13 @@ class PostViewSet(viewsets.ModelViewSet):
 
 class OwnPostView(generics.ListAPIView):
     queryset = Post.objects.all()
-    serializer_class = PostSerializer
+    serializer_class = PostListSerializer
     permission_classes = (IsOwnerOrReadOnly,)
     authentication_classes = (TokenAuthentication,)
 
     def get_queryset(self):
         user = self.request.user.profile.id
-        return Post.objects.filter(author_id=user)
+        return Post.objects.select_related("author").prefetch_related("posts", "post_likes").filter(author_id=user)
 
 
 class FollowingPostView(generics.ListAPIView):
@@ -145,7 +145,7 @@ class FollowingPostView(generics.ListAPIView):
 
 
 class CommentaryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin, GenericViewSet):
-    queryset = Commentary.objects.all()
+    queryset = Commentary.objects.select_related("user", "post")
     serializer_class = CommentaryListSerializer
     permission_classes = (IsAdminUser,)
     authentication_classes = (TokenAuthentication,)
@@ -175,8 +175,8 @@ class CommentaryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins
         return queryset
 
 
-class LikeViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
-    queryset = Like.objects.all()
+class LikeViewSet(mixins.ListModelMixin, GenericViewSet):
+    queryset = Like.objects.select_related("user", "post")
     serializer_class = LikeSerializer
     permission_classes = (IsAdminUser,)
     authentication_classes = (TokenAuthentication,)
@@ -239,7 +239,7 @@ class OwnCommentary(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user.profile.id
-        return Commentary.objects.filter(user_id=user)
+        return Commentary.objects.select_related("user", "post").filter(user_id=user)
 
 
 class Likes(APIView):
@@ -272,4 +272,4 @@ class LikedPostView(generics.ListAPIView):
         user = self.request.user.profile.id
         liked = UserProfile.objects.get(id=user).likes.all()
         ids = [post.post_id for post in liked]
-        return Post.objects.filter(id__in=ids)
+        return Post.objects.select_related("author").prefetch_related("posts", "post_likes").filter(id__in=ids)

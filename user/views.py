@@ -29,10 +29,6 @@ from user.serializers import (
     FollowingSerializer
 )
 
-    # add this to api_root
-    # path("posts/<int:pk>/comment/", CommentView.as_view(), name="comment-post"),
-    # path("comment/<int:pk>/delete/", CommentaryDeleteApiView.as_view(), name="comment-delete"),
-    # path("users/<int:pk>/follow/", UserFollow.as_view(), name="follow-detail"),
 
 @api_view(['GET'])
 def api_root(request, format=None):
@@ -46,14 +42,16 @@ def api_root(request, format=None):
         "all_users": reverse("user:users-list", request=request, format=format),
         "all_posts": reverse("social:posts-list", request=request, format=format),
         "your_own_posts": reverse("social:your-post", request=request, format=format),
-        "your_following_posts": reverse("social:following-post", request=request, format=format),
+        "your_following_posts": reverse("social:liked", request=request, format=format),
+        "your own commentary": reverse("social:own-commentary", request=request, format=format),
+        "liked posts": reverse("social:liked", request=request, format=format),
         "following history(sys info admin only)": reverse("user:following-history-list", request=request, format=format),
         "all_comments(sys info admin only)": reverse("social:comments-history-list", request=request, format=format),
         "all_likes(sys info admin only)": reverse("social:likes-history-list", request=request, format=format),
     })
 
 
-def following_user(request, pk, format=None):
+def following_user(request, pk: int, format=None):
     user = request.user.profile
     follow = get_object_or_404(UserProfile, pk=pk)
 
@@ -71,7 +69,7 @@ def following_user(request, pk, format=None):
     return Response({'message': f"You successful subscribe on {first_name} {last_name} (user_id: {user_id})"})
 
 
-def unfollowing_user(request, pk, format=None):
+def unfollowing_user(request, pk: int, format=None):
     user = request.user.profile
     follow = get_object_or_404(UserProfile, pk=pk)
 
@@ -134,7 +132,7 @@ class UserProfileViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
-    queryset = UserProfile.objects.all()
+    queryset = UserProfile.objects.prefetch_related("followers", "following")
     serializer_class = UserProfileSerializer
     permission_classes = (IsOwnerOrReadOnlyUserProfile,)
     authentication_classes = (TokenAuthentication,)
@@ -215,24 +213,22 @@ class UserFollowingViewSet(mixins.ListModelMixin, GenericViewSet):
 
 class UserFollowers(generics.ListAPIView):
     serializer_class = FollowersSerializer
-    queryset = UserFollowing.objects.all()
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         user = self.request.user.profile.id
-        return UserFollowing.objects.filter(you_follow_to_id=user)
+        return UserFollowing.objects.select_related("your_followers").filter(you_follow_to_id=user)
 
 
 class UserFollowings(generics.ListAPIView):
-    queryset = UserFollowing.objects.all()
     serializer_class = FollowingSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         user = self.request.user.profile.id
-        return UserFollowing.objects.filter(your_followers_id=user)
+        return UserFollowing.objects.select_related("you_follow_to").filter(your_followers_id=user)
 
 
 class UserFollow(APIView):
