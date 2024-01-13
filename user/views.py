@@ -13,6 +13,7 @@ from rest_framework.decorators import action, api_view
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.reverse import reverse
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
 from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly, IsOwnerOrReadOnlyUserProfile
 from user.models import UserProfile, UserFollowing, User
@@ -140,14 +141,11 @@ class UserProfileViewSet(
 
     def get_queryset(self) -> QuerySet:
         queryset = self.queryset
-        username = self.request.query_params.get("username")
         age = self.request.query_params.get("age")
         first_name = self.request.query_params.get("first_name")
         last_name = self.request.query_params.get("last_name")
         city = self.request.query_params.get("city")
         country = self.request.query_params.get("country")
-        if username is not None:
-            queryset = queryset.filter(username__icontains=username)
         if age is not None:
             queryset = queryset.filter(age__exact=age)
         if first_name is not None:
@@ -202,6 +200,38 @@ class UserProfileViewSet(
     )
     def unfollow_user(self, request, pk, format=None):
         return unfollowing_user(request, pk, format=None)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "age",
+                type=OpenApiTypes.INT,
+                description="Filter user by age (ex. ?age=47)",
+            ),
+            OpenApiParameter(
+                "first_name",
+                type=OpenApiTypes.STR,
+                description="Filter by profile first_name (ex. ?first_name=Antony)",
+            ),
+            OpenApiParameter(
+                "last_name",
+                type=OpenApiTypes.STR,
+                description="Filter user by last_name (ex. ?last_name=Bulb)",
+            ),
+            OpenApiParameter(
+                "city",
+                type=OpenApiTypes.STR,
+                description="Filter user by city (ex. ?username=Dallas)",
+            ),
+            OpenApiParameter(
+                "country",
+                type=OpenApiTypes.STR,
+                description="Filter user by country (ex. ?country=Ukraine)",
+            ),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class UserFollowingViewSet(mixins.ListModelMixin, GenericViewSet):

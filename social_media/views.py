@@ -6,11 +6,14 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.pagination import PageNumberPagination
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+
+
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
 
 from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly, IsOwnerOrReadOnlyUserProfile, \
     IsOwnerOrReadOnlyDeleteComment, IsAdminOrOwner
-from rest_framework.views import APIView
-from django.shortcuts import get_object_or_404
 
 from social_media.models import Post, Commentary, Like
 from social_media.serializers import PostSerializer, CommentarySerializer, PostImageSerializer, LikeSerializer, \
@@ -118,6 +121,38 @@ class PostViewSet(viewsets.ModelViewSet):
     def unlike_the_post(self, request, *args, **kwargs):
         return unlike_post(request, *args, **kwargs)
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "title",
+                type=OpenApiTypes.STR,
+                description="Filter post by title (ex. ?title=murder)",
+            ),
+            OpenApiParameter(
+                "content",
+                type=OpenApiTypes.STR,
+                description="Filter post by content (ex. ?content=news)",
+            ),
+            OpenApiParameter(
+                "hashtags",
+                type=OpenApiTypes.STR,
+                description="Filter post by hashtags (ex. ?hashtags=#2024)",
+            ),
+            OpenApiParameter(
+                "author",
+                type={"type": "list", "items": {"type": "number"}},
+                description="Filter post by author id (ex. ?author=2,5)",
+            ),
+            OpenApiParameter(
+                "created_time",
+                type=OpenApiTypes.DATE,
+                description="Filter post by created_time (ex. ?created_time=2024-01-13)",
+            ),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
 
 class OwnPostView(generics.ListAPIView):
     queryset = Post.objects.all()
@@ -173,6 +208,38 @@ class CommentaryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins
             queryset = queryset.filter(created_time__date=created_time)
 
         return queryset
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "content",
+                type=OpenApiTypes.STR,
+                description="Filter by content (ex. ?content=news)",
+            ),
+            OpenApiParameter(
+                "post_title",
+                type=OpenApiTypes.STR,
+                description="Filter by post_title (ex. ?post_title=killing)",
+            ),
+            OpenApiParameter(
+                "user",
+                type={"type": "list", "items": {"type": "number"}},
+                description="Filter by user id (ex. ?user=2,5)",
+            ),
+            OpenApiParameter(
+                "post",
+                type={"type": "list", "items": {"type": "number"}},
+                description="Filter by post id (ex. ?post=2,5)",
+            ),
+            OpenApiParameter(
+                "created_time",
+                type=OpenApiTypes.DATE,
+                description="Filter by created_time (ex. ?created_time=2024-01-13)",
+            ),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class LikeViewSet(mixins.ListModelMixin, GenericViewSet):
