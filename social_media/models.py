@@ -24,7 +24,11 @@ class Post(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
     created_time = models.DateTimeField(auto_now_add=True)
-    photo = models.ImageField(blank=True, null=True, upload_to=post_image_file_path)
+    photo = models.ImageField(
+        blank=True,
+        null=True,
+        upload_to=post_image_file_path
+    )
     hashtags = models.CharField(max_length=100, blank=True, null=True)
 
     author = models.ForeignKey(

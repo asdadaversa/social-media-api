@@ -9,7 +9,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ("id", "email_id", "first_name", "last_name", "city", "country", "age", "gender", "bio", "registered_at")
+        fields = (
+            "id",
+            "email_id",
+            "first_name",
+            "last_name",
+            "city",
+            "country",
+            "age",
+            "gender",
+            "bio",
+            "registered_at"
+        )
 
 
 class UserProfileListSerializer(UserProfileSerializer):
@@ -54,7 +65,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)
-        user = User.objects.create(email=validated_data["email"], password=password)
+        user = User.objects.create(
+            email=validated_data["email"],
+            password=password
+        )
         user.set_password(password)
         user.save()
         profile_data = validated_data.pop("profile")
@@ -128,10 +142,28 @@ class UserFollowingSerializer(serializers.ModelSerializer):
 
 
 class FollowingSerializer(UserFollowingSerializer):
-    photo = serializers.ImageField(source="you_follow_to.photo", read_only=True)
-    user_id = serializers.SlugRelatedField(source="you_follow_to", slug_field="id", read_only=True, many=False)
-    city = serializers.SlugRelatedField(source="you_follow_to", slug_field="city", read_only=True, many=False)
-    full_name = serializers.SlugRelatedField(source="you_follow_to", slug_field="full_name", read_only=True, many=False)
+    photo = serializers.ImageField(
+        source="you_follow_to.photo",
+        read_only=True
+    )
+    user_id = serializers.SlugRelatedField(
+        source="you_follow_to",
+        slug_field="id",
+        read_only=True,
+        many=False
+    )
+    city = serializers.SlugRelatedField(
+        source="you_follow_to",
+        slug_field="city",
+        read_only=True,
+        many=False
+    )
+    full_name = serializers.SlugRelatedField(
+        source="you_follow_to",
+        slug_field="full_name",
+        read_only=True,
+        many=False
+    )
     followers_since = serializers.DateTimeField(source="created")
 
     class Meta:
@@ -140,10 +172,28 @@ class FollowingSerializer(UserFollowingSerializer):
 
 
 class FollowersSerializer(UserFollowingSerializer):
-    photo = serializers.ImageField(source="your_followers.photo", read_only=True)
-    user_id = serializers.SlugRelatedField(source="your_followers", slug_field="id", read_only=True, many=False)
-    full_name = serializers.SlugRelatedField(source="your_followers", slug_field="full_name", read_only=True, many=False)
-    city = serializers.SlugRelatedField(source="your_followers", slug_field="city", read_only=True, many=False)
+    photo = serializers.ImageField(
+        source="your_followers.photo",
+        read_only=True
+    )
+    user_id = serializers.SlugRelatedField(
+        source="your_followers",
+        slug_field="id",
+        read_only=True,
+        many=False
+    )
+    full_name = serializers.SlugRelatedField(
+        source="your_followers",
+        slug_field="full_name",
+        read_only=True,
+        many=False
+    )
+    city = serializers.SlugRelatedField(
+        source="your_followers",
+        slug_field="city",
+        read_only=True,
+        many=False
+    )
     followers_since = serializers.DateTimeField(source="created")
 
     class Meta:

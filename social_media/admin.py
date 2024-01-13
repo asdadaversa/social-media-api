@@ -1,5 +1,5 @@
 from django.contrib import admin
-from social_media.models import Post, PostHashtags, Commentary, Like
+from social_media.models import Post, Commentary, Like
 
 
 class CommentsInline(admin.TabularInline):

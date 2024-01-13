@@ -1,7 +1,7 @@
 from rest_framework import generics
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.settings import api_settings
 from rest_framework import status, viewsets
 from rest_framework.response import Response
@@ -15,8 +15,11 @@ from rest_framework.reverse import reverse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
-from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly, IsOwnerOrReadOnlyUserProfile
-from user.models import UserProfile, UserFollowing, User
+from social_media.permissions import (
+    AnonPermissionOnly,
+    IsOwnerOrReadOnlyUserProfile
+)
+from user.models import UserProfile, UserFollowing
 from user.serializers import (
     UserSerializer,
     AuthTokenSerializer,
@@ -31,24 +34,68 @@ from user.serializers import (
 )
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def api_root(request, format=None):
     return Response({
         "register": reverse("user:create",  request=request, format=format),
         "login": reverse("user:login",  request=request, format=format),
         "logout": reverse("user:logout",  request=request, format=format),
-        "user_own_profile": reverse("user:profile", request=request, format=format),
-        "user_followers": reverse("user:followers", request=request, format=format),
-        "user_follow_to": reverse("user:followings", request=request, format=format),
-        "all_users": reverse("user:users-list", request=request, format=format),
-        "all_posts": reverse("social:posts-list", request=request, format=format),
-        "your_own_posts": reverse("social:your-post", request=request, format=format),
-        "your_following_posts": reverse("social:liked", request=request, format=format),
-        "your own commentary": reverse("social:own-commentary", request=request, format=format),
+        "user_own_profile": reverse(
+            "user:profile",
+            request=request,
+            format=format
+        ),
+        "user_followers": reverse(
+            "user:followers",
+            request=request,
+            format=format
+        ),
+        "user_follow_to": reverse(
+            "user:followings",
+            request=request,
+            format=format
+        ),
+        "all_users": reverse(
+            "user:users-list",
+            request=request,
+            format=format
+        ),
+        "all_posts": reverse(
+            "social:posts-list",
+            request=request,
+            format=format
+        ),
+        "your_own_posts": reverse(
+            "social:your-post",
+            request=request,
+            format=format
+        ),
+        "your_following_posts": reverse(
+            "social:liked",
+            request=request,
+            format=format
+        ),
+        "your own commentary": reverse(
+            "social:own-commentary",
+            request=request,
+            format=format
+        ),
         "liked posts": reverse("social:liked", request=request, format=format),
-        "following history(sys info admin only)": reverse("user:following-history-list", request=request, format=format),
-        "all_comments(sys info admin only)": reverse("social:comments-history-list", request=request, format=format),
-        "all_likes(sys info admin only)": reverse("social:likes-history-list", request=request, format=format),
+        "following history(sys info admin only)": reverse(
+            "user:following-history-list",
+            request=request,
+            format=format
+        ),
+        "all_comments(sys info admin only)": reverse(
+            "social:comments-history-list",
+            request=request,
+            format=format
+        ),
+        "all_likes(sys info admin only)": reverse(
+            "social:likes-history-list",
+            request=request,
+            format=format
+        ),
     })
 
 
@@ -57,9 +104,18 @@ def following_user(request, pk: int, format=None):
     follow = get_object_or_404(UserProfile, pk=pk)
 
     if user == follow:
-        return Response({'message': f"You can't subscribe on your self"})
-    if user.id in [follower.your_followers_id for follower in follow.following.all()]:
-        return Response({'message': f"You already  follow user {follow.first_name} {follow.last_name}"})
+        return Response({"message": "You can't subscribe on your self"})
+    if user.id in [
+        follower.your_followers_id
+        for follower in follow.following.all()
+    ]:
+        return Response(
+            {
+                "message": (f"You already "
+                            f"follow user {follow.first_name} "
+                            f"{follow.last_name}")
+            }
+        )
     UserFollowing.objects.create(you_follow_to=follow, your_followers=user)
 
     serializer = UserProfileDetailSerializer(follow)
@@ -67,34 +123,48 @@ def following_user(request, pk: int, format=None):
     last_name = serializer.data["last_name"]
     user_id = serializer.data["id"]
 
-    return Response({'message': f"You successful subscribe on {first_name} {last_name} (user_id: {user_id})"})
+    return Response(
+        {
+            "message": (f"You successful subscribe "
+                        f"on {first_name} {last_name} "
+                        f"(user_id: {user_id})")
+        }
+    )
 
 
 def unfollowing_user(request, pk: int, format=None):
     user = request.user.profile
     follow = get_object_or_404(UserProfile, pk=pk)
 
-    connection = UserFollowing.objects.filter(you_follow_to=follow, your_followers=user).first()
+    connection = UserFollowing.objects.filter(
+        you_follow_to=follow,
+        your_followers=user
+    ).first()
     if connection:
         connection.delete()
         serializer = UserProfileSerializer(follow)
         first_name = serializer.data["first_name"]
         last_name = serializer.data["last_name"]
         user_id = serializer.data["id"]
-        return Response({'message': f"You successful unsubscribe from {first_name} {last_name} (user_id: {user_id})"})
-    else:
-        return Response({'message': f"You are not followers"})
+        return Response(
+            {
+                "message": (f"You successful unsubscribe "
+                            f"from {first_name} {last_name} "
+                            f"(user_id: {user_id})")
+                         }
+        )
+    return Response({"message": "You are not followers"})
 
 
 class UserProfilesPagination(PageNumberPagination):
     page_size = 10
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 1000
 
 
 class FollowingPagination(PageNumberPagination):
     page_size = 10
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 1000
 
 
@@ -111,7 +181,7 @@ class ManageUserView(generics.RetrieveUpdateDestroyAPIView):
 class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
     authentication_classes = (TokenAuthentication,)
-    # permission_classes = (AnonPermissionOnly,)
+    permission_classes = (AnonPermissionOnly,)
 
 
 class CreateTokenView(ObtainAuthToken):
@@ -125,7 +195,12 @@ class LogoutView(APIView):
 
     def get(self, request, format=None):
         request.user.auth_token.delete()
-        return Response({'message': "Logout successful, token unvalidated, to access log in again"})
+        return Response(
+            {
+                "message": ("Logout successful,"
+                            "token unvalidated, to access log in again")
+            }
+        )
 
 
 class UserProfileViewSet(
@@ -211,7 +286,8 @@ class UserProfileViewSet(
             OpenApiParameter(
                 "first_name",
                 type=OpenApiTypes.STR,
-                description="Filter by profile first_name (ex. ?first_name=Antony)",
+                description=("Filter by profile "
+                             "first_name (ex. ?first_name=Antony)"),
             ),
             OpenApiParameter(
                 "last_name",
@@ -248,7 +324,11 @@ class UserFollowers(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user.profile.id
-        return UserFollowing.objects.select_related("your_followers").filter(you_follow_to_id=user)
+        return (
+            UserFollowing.objects
+            .select_related("your_followers")
+            .filter(you_follow_to_id=user)
+        )
 
 
 class UserFollowings(generics.ListAPIView):
@@ -258,7 +338,10 @@ class UserFollowings(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user.profile.id
-        return UserFollowing.objects.select_related("you_follow_to").filter(your_followers_id=user)
+        return (
+            UserFollowing.objects.select_related("you_follow_to")
+            .filter(your_followers_id=user)
+        )
 
 
 class UserFollow(APIView):

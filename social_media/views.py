@@ -4,22 +4,27 @@ from rest_framework.authentication import TokenAuthentication
 from django.db.models.query import QuerySet
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from django.http import HttpResponse, HttpRequest
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.pagination import PageNumberPagination
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
-
-
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 
-from social_media.permissions import IsOwnerOrReadOnly, AnonPermissionOnly, IsOwnerOrReadOnlyUserProfile, \
-    IsOwnerOrReadOnlyDeleteComment, IsAdminOrOwner
-
+from social_media.permissions import (
+    IsOwnerOrReadOnly,
+    IsOwnerOrReadOnlyDeleteComment
+)
 from social_media.models import Post, Commentary, Like
-from social_media.serializers import PostSerializer, CommentarySerializer, PostImageSerializer, LikeSerializer, \
-    CommentaryListSerializer, CommentaryPostSerializer, PostListSerializer
+from social_media.serializers import (
+    PostSerializer,
+    CommentarySerializer,
+    LikeSerializer,
+    CommentaryListSerializer,
+    CommentaryPostSerializer,
+    PostListSerializer
+)
 from user.models import UserProfile
-from user.serializers import UserProfileDetailSerializer
 
 
 def params_to_ints(qs):
@@ -27,36 +32,39 @@ def params_to_ints(qs):
     return [int(str_id) for str_id in qs.split(",")]
 
 
-def like_post(request, *args, **kwargs):
+def like_post(request: HttpRequest, *args, **kwargs) -> HttpResponse:
     pk = kwargs.get("pk")
     user = request.user.profile
     post = get_object_or_404(Post, pk=pk)
 
     if user.id in [post.user_id for post in post.post_likes.all()]:
-        return Response({'message': f"You already liked this post"})
+        return Response({"message": "You already liked this post"})
     Like.objects.create(user=user, post=post)
-    return Response({'message': f"post was liked"})
+    return Response({"message": "post was liked"})
 
 
-def unlike_post(request, *args, **kwargs):
+def unlike_post(request: HttpRequest, *args, **kwargs) -> HttpResponse:
     pk = kwargs.get("pk")
     user = request.user.profile
     post = get_object_or_404(Post, pk=pk)
     like = Like.objects.filter(user=user, post=post).first()
     if like:
         like.delete()
-        return Response({'message': f"you have unliked post"})
-    return Response({'message': f"you never liked post"})
+        return Response({"message": "you have unliked post"})
+    return Response({"message": "you never liked post"})
 
 
 class CommentaryPagination(PageNumberPagination):
     page_size = 10
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 1000
 
 
 class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.select_related("author").prefetch_related("posts", "post_likes")
+    queryset = (
+        Post.objects.select_related("author")
+        .prefetch_related("posts", "post_likes")
+    )
     serializer_class = PostSerializer
     permission_classes = (IsOwnerOrReadOnly,)
     authentication_classes = (TokenAuthentication,)
@@ -146,7 +154,10 @@ class PostViewSet(viewsets.ModelViewSet):
             OpenApiParameter(
                 "created_time",
                 type=OpenApiTypes.DATE,
-                description="Filter post by created_time (ex. ?created_time=2024-01-13)",
+                description=(
+                        "Filter post by created_time"
+                        "(ex. ?created_time=2024-01-13)"
+                ),
             ),
         ]
     )
@@ -162,7 +173,11 @@ class OwnPostView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user.profile.id
-        return Post.objects.select_related("author").prefetch_related("posts", "post_likes").filter(author_id=user)
+        return (
+            Post.objects.select_related("author")
+            .prefetch_related("posts", "post_likes")
+            .filter(author_id=user)
+        )
 
 
 class FollowingPostView(generics.ListAPIView):
@@ -179,7 +194,12 @@ class FollowingPostView(generics.ListAPIView):
         return Post.objects.filter(author__id__in=ids)
 
 
-class CommentaryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin, GenericViewSet):
+class CommentaryViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    GenericViewSet
+):
     queryset = Commentary.objects.select_related("user", "post")
     serializer_class = CommentaryListSerializer
     permission_classes = (IsAdminUser,)
@@ -191,7 +211,7 @@ class CommentaryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins
         user = self.request.query_params.get("user_id")
         content = self.request.query_params.get("content")
         post = self.request.query_params.get("post_id")
-        post_title  = self.request.query_params.get("post_title")
+        post_title = self.request.query_params.get("post_title")
         created_time = self.request.query_params.get("created_time")
 
         if user:
@@ -234,7 +254,10 @@ class CommentaryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins
             OpenApiParameter(
                 "created_time",
                 type=OpenApiTypes.DATE,
-                description="Filter by created_time (ex. ?created_time=2024-01-13)",
+                description=(
+                        "Filter by created_time"
+                        "(ex. ?created_time=2024-01-13)"
+                ),
             ),
         ]
     )
@@ -270,11 +293,17 @@ class CommentView(APIView):
         post = self.get_object()
         content = self.request.data["content"]
         if content:
-            comment = Commentary.objects.create(user=user, post=post, content=content)
+            comment = Commentary.objects.create(
+                user=user,
+                post=post,
+                content=content
+            )
             serializer = CommentaryPostSerializer(comment)
-            return Response(("Your commentary was posted", serializer.data), status=status.HTTP_201_CREATED)
-        else:
-            return Response("Cant post empty comment")
+            return Response(
+                ("Your commentary was posted", serializer.data),
+                status=status.HTTP_201_CREATED
+            )
+        return Response("Cant post empty comment")
 
 
 class CommentaryDeleteApiView(generics.DestroyAPIView):
@@ -295,7 +324,7 @@ class CommentaryDeleteApiView(generics.DestroyAPIView):
         pk = self.kwargs.get("pk")
         commentary = get_object_or_404(Commentary, pk=pk)
         commentary.delete()
-        return Response({'message': f"commentary was successful deleted"})
+        return Response({"message": "commentary was successful deleted"})
 
 
 class OwnCommentary(generics.ListAPIView):
@@ -306,7 +335,10 @@ class OwnCommentary(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user.profile.id
-        return Commentary.objects.select_related("user", "post").filter(user_id=user)
+        return (
+            Commentary.objects.select_related("user", "post")
+            .filter(user_id=user)
+        )
 
 
 class Likes(APIView):
@@ -339,4 +371,8 @@ class LikedPostView(generics.ListAPIView):
         user = self.request.user.profile.id
         liked = UserProfile.objects.get(id=user).likes.all()
         ids = [post.post_id for post in liked]
-        return Post.objects.select_related("author").prefetch_related("posts", "post_likes").filter(id__in=ids)
+        return (
+            Post.objects.select_related("author")
+            .prefetch_related("posts", "post_likes")
+            .filter(id__in=ids)
+        )

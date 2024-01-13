@@ -16,7 +16,11 @@ from user.views import (
 
 router = routers.DefaultRouter()
 router.register("users", UserProfileViewSet, basename="users")
-router.register("following-history", UserFollowingViewSet, basename="following-history")
+router.register(
+    "following-history",
+    UserFollowingViewSet,
+    basename="following-history"
+)
 
 
 urlpatterns = [

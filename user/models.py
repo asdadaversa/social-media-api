@@ -64,15 +64,32 @@ class UserProfile(models.Model):
         FEMALE = "Female"
         MALE = "Male"
 
-    email = models.OneToOneField(User, unique=True, on_delete=models.CASCADE, related_name="profile")
+    email = models.OneToOneField(
+        User,
+        unique=True,
+        on_delete=models.CASCADE,
+        related_name="profile"
+    )
     first_name = models.CharField(max_length=200, blank=True)
     last_name = models.CharField(max_length=200, blank=True)
     city = models.CharField(max_length=50, blank=True)
     country = models.CharField(max_length=50, blank=True)
-    age = models.IntegerField(blank=True, null=True, validators=[MaxValueValidator(120), MinValueValidator(1)])
-    gender = models.CharField(max_length=50, choices=GenderChoices.choices, blank=True)
+    age = models.IntegerField(
+        blank=True,
+        null=True,
+        validators=[MaxValueValidator(120), MinValueValidator(1)]
+    )
+    gender = models.CharField(
+        max_length=50,
+        choices=GenderChoices.choices,
+        blank=True
+    )
     bio = models.TextField(blank=True)
-    photo = models.ImageField(blank=True, null=True, upload_to=user_image_file_path)
+    photo = models.ImageField(
+        blank=True,
+        null=True,
+        upload_to=user_image_file_path
+    )
     registered_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -97,13 +114,24 @@ class UserProfile(models.Model):
 
 class UserFollowing(models.Model):
 
-    your_followers = models.ForeignKey(UserProfile, related_name="followers", on_delete=models.CASCADE)
-    you_follow_to = models.ForeignKey(UserProfile, related_name="following", on_delete=models.CASCADE)
+    your_followers = models.ForeignKey(
+        UserProfile,
+        related_name="followers",
+        on_delete=models.CASCADE
+    )
+    you_follow_to = models.ForeignKey(
+        UserProfile,
+        related_name="following",
+        on_delete=models.CASCADE
+    )
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["you_follow_to", "your_followers"],  name="unique_followers")
+            models.UniqueConstraint(
+                fields=["you_follow_to", "your_followers"],
+                name="unique_followers"
+            )
         ]
 
         ordering = ["-created"]
