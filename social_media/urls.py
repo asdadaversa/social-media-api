@@ -9,6 +9,9 @@ from social_media.views import (
     LikeViewSet,
     CommentView,
     CommentaryDeleteApiView,
+    OwnCommentary,
+    Likes,
+    LikedPostView
 )
 
 router = routers.DefaultRouter()
@@ -22,6 +25,9 @@ urlpatterns = [
     path("posts/following-post", FollowingPostView.as_view(), name="following-post"),
     path("posts/<int:pk>/comment/", CommentView.as_view(), name="comment-post"),
     path("comment/<int:pk>/delete/", CommentaryDeleteApiView.as_view(), name="comment-delete"),
+    path("comment/own-commentary/", OwnCommentary.as_view(), name="own-commentary"),
+    path("posts/<int:pk>/like/", Likes.as_view(), name="like-post"),
+    path("posts/liked/", LikedPostView.as_view(), name="liked"),
     path("", include(router.urls))
 ]
 

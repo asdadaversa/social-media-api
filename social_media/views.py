@@ -64,6 +64,7 @@ class PostViewSet(viewsets.ModelViewSet):
         content = self.request.query_params.get("content")
         hashtags = self.request.query_params.get("hashtags")
         author = self.request.query_params.get("author")
+        created_time = self.request.query_params.get("created_time")
 
         if title:
             queryset = queryset.filter(title__icontains=title)
@@ -74,6 +75,8 @@ class PostViewSet(viewsets.ModelViewSet):
         if author:
             author_id = params_to_ints(author)
             queryset = queryset.filter(author__id__in=author_id)
+        if created_time:
+            queryset = queryset.filter(created_time__date=created_time)
 
         return queryset
 
@@ -148,7 +151,28 @@ class CommentaryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins
     authentication_classes = (TokenAuthentication,)
     pagination_class = CommentaryPagination
 
-    #add search
+    def get_queryset(self) -> QuerySet:
+        queryset = self.queryset
+        user = self.request.query_params.get("user_id")
+        content = self.request.query_params.get("content")
+        post = self.request.query_params.get("post_id")
+        post_title  = self.request.query_params.get("post_title")
+        created_time = self.request.query_params.get("created_time")
+
+        if user:
+            user_id = params_to_ints(user)
+            queryset = queryset.filter(user_id__in=user_id)
+
+        if content:
+            queryset = queryset.filter(content__icontains=content)
+        if post:
+            queryset = queryset.filter(post__icontains=post)
+        if post_title:
+            queryset = queryset.filter(post_title__icontains=post_title)
+        if created_time:
+            queryset = queryset.filter(created_time__date=created_time)
+
+        return queryset
 
 
 class LikeViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
@@ -237,3 +261,15 @@ class Likes(APIView):
     def delete(self, request, *args, **kwargs):
         return unlike_post(request, *args, **kwargs)
 
+
+class LikedPostView(generics.ListAPIView):
+    queryset = Post.objects.all()
+    serializer_class = PostListSerializer
+    permission_classes = (IsOwnerOrReadOnly,)
+    authentication_classes = (TokenAuthentication,)
+
+    def get_queryset(self):
+        user = self.request.user.profile.id
+        liked = UserProfile.objects.get(id=user).likes.all()
+        ids = [post.post_id for post in liked]
+        return Post.objects.filter(id__in=ids)
