@@ -6,10 +6,11 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from django.http import HttpResponse, HttpRequest
 from rest_framework.viewsets import GenericViewSet
-from rest_framework.pagination import PageNumberPagination
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
+
+from pagination import CommentaryPagination
 
 from social_media.permissions import (
     IsOwnerOrReadOnly,
@@ -52,12 +53,6 @@ def unlike_post(request: HttpRequest, *args, **kwargs) -> HttpResponse:
         like.delete()
         return Response({"message": "you have unliked post"})
     return Response({"message": "you never liked post"})
-
-
-class CommentaryPagination(PageNumberPagination):
-    page_size = 10
-    page_size_query_param = "page_size"
-    max_page_size = 1000
 
 
 class PostViewSet(viewsets.ModelViewSet):

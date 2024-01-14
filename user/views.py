@@ -10,11 +10,11 @@ from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 from django.db.models.query import QuerySet
 from rest_framework.decorators import action, api_view
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.reverse import reverse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
+from pagination import FollowingPagination, UserProfilesPagination
 from social_media.permissions import (
     AnonPermissionOnly,
     IsOwnerOrReadOnlyUserProfile
@@ -154,18 +154,6 @@ def unfollowing_user(request, pk: int, format=None):
                          }
         )
     return Response({"message": "You are not followers"})
-
-
-class UserProfilesPagination(PageNumberPagination):
-    page_size = 10
-    page_size_query_param = "page_size"
-    max_page_size = 1000
-
-
-class FollowingPagination(PageNumberPagination):
-    page_size = 10
-    page_size_query_param = "page_size"
-    max_page_size = 1000
 
 
 class ManageUserView(generics.RetrieveUpdateDestroyAPIView):
