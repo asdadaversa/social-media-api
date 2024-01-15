@@ -71,7 +71,7 @@ def api_root(request, format=None):
             format=format
         ),
         "your_following_posts": reverse(
-            "social:liked",
+            "social:following-post",
             request=request,
             format=format
         ),
